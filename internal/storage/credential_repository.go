@@ -93,7 +93,7 @@ func (r *CredentialRepository) Get(ctx context.Context, id string) (CredentialRe
 	return record, nil
 }
 
-func (r *CredentialRepository) ListActive(ctx context.Context) ([]CredentialRecord, error) {
+func (r *CredentialRepository) ListActive(ctx context.Context) (records []CredentialRecord, err error) {
 	rows, err := r.store.QueryContext(ctx, `SELECT
 		id,
 		ciphertext,
@@ -108,9 +108,12 @@ func (r *CredentialRepository) ListActive(ctx context.Context) ([]CredentialReco
 	if err != nil {
 		return nil, fmt.Errorf("list active credentials: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("close active credentials rows: %w", closeErr)
+		}
+	}()
 
-	var records []CredentialRecord
 	for rows.Next() {
 		var record CredentialRecord
 		var createdAt string

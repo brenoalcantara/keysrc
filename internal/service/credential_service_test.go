@@ -17,7 +17,7 @@ import (
 func TestCredentialServiceCRUD(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	session := testVaultSession(t)
 	now := time.Date(2026, 6, 23, 12, 0, 0, 0, time.UTC)
@@ -119,7 +119,7 @@ func TestCredentialServiceCRUD(t *testing.T) {
 func TestCredentialServiceRejectsInvalidInput(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	session := testVaultSession(t)
 	credentialService := NewCredentialService(db)
@@ -153,7 +153,7 @@ func TestCredentialServiceRejectsInvalidInput(t *testing.T) {
 func TestCredentialServiceRejectsWrongVaultKey(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	session := testVaultSession(t)
 	credentialService := NewCredentialService(db)
@@ -222,7 +222,7 @@ func TestCredentialServiceRejectsTamperedEncryptedRecord(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			ctx := context.Background()
 			db := openMigratedTestDB(t, ctx)
-			defer db.Close()
+			defer closeTestDB(t, db)
 
 			session := testVaultSession(t)
 			credentialService := NewCredentialService(db)
@@ -249,7 +249,7 @@ func TestCredentialServiceRejectsTamperedEncryptedRecord(t *testing.T) {
 func TestCredentialServiceConcurrentCreates(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	session := testVaultSession(t)
 	credentialService := NewCredentialService(db)
@@ -365,7 +365,11 @@ func assertSQLiteDoesNotContain(t *testing.T, db *sql.DB, value string) {
 	if err != nil {
 		t.Fatalf("query raw credentials: %v", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			t.Fatalf("close raw credentials rows: %v", err)
+		}
+	}()
 
 	for rows.Next() {
 		var ciphertext []byte

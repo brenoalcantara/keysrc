@@ -15,7 +15,6 @@
 .codex/
 .env
 .env.*
-.golangci.yml
 .idea/
 .playwright-mcp
 .vscode/
@@ -24,8 +23,8 @@ bin/
 build/
 coverage.out
 dist/
-docs/
 fyne-cross/
 temp/
 tmp/
 vendor/
+vibe/

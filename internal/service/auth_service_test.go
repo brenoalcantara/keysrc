@@ -16,7 +16,7 @@ import (
 func TestAuthServiceCreateAndUnlockVault(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	now := time.Date(2026, 6, 23, 10, 0, 0, 0, time.UTC)
 	auth := NewAuthServiceWithOptions(db, AuthOptions{
@@ -96,7 +96,7 @@ func TestAuthServiceCreateAndUnlockVault(t *testing.T) {
 func TestAuthServiceRejectsWeakPasswordBeforePersistingVault(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	auth := NewAuthServiceWithOptions(db, AuthOptions{
 		KDFParams: testKDFParams(),
@@ -120,7 +120,7 @@ func TestAuthServiceRejectsWeakPasswordBeforePersistingVault(t *testing.T) {
 func TestAuthServiceChangeMasterPassword(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	now := time.Date(2026, 6, 23, 10, 0, 0, 0, time.UTC)
 	auth := NewAuthServiceWithOptions(db, AuthOptions{
@@ -260,11 +260,21 @@ func openMigratedTestDB(t *testing.T, ctx context.Context) *sql.DB {
 	}
 
 	if err := storage.Migrate(ctx, db); err != nil {
-		db.Close()
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("migrate test database: %v; close test database: %v", err, closeErr)
+		}
 		t.Fatalf("migrate test database: %v", err)
 	}
 
 	return db
+}
+
+func closeTestDB(t *testing.T, db *sql.DB) {
+	t.Helper()
+
+	if err := db.Close(); err != nil {
+		t.Fatalf("close test database: %v", err)
+	}
 }
 
 func testKDFParams() security.KDFParams {

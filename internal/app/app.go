@@ -12,7 +12,7 @@ import (
 	fyneapp "fyne.io/fyne/v2/app"
 )
 
-func Run() error {
+func Run() (err error) {
 	ctx := context.Background()
 	cfg := DefaultConfig()
 
@@ -26,7 +26,11 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		if closeErr := db.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("close database: %w", closeErr)
+		}
+	}()
 
 	if err := storage.Migrate(ctx, db); err != nil {
 		return fmt.Errorf("migrate database: %w", err)

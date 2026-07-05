@@ -13,7 +13,7 @@ import (
 func TestMigrateCreatesVersionedSchema(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	assertTableExists(t, db, "schema_migrations")
 	assertTableExists(t, db, "vault_metadata")
@@ -54,7 +54,7 @@ func TestMigrateCreatesVersionedSchema(t *testing.T) {
 func TestVaultRepositoryCreateLoadUpdateAndRollback(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	repo := NewVaultRepository(db)
 
@@ -135,7 +135,7 @@ func TestVaultRepositoryCreateLoadUpdateAndRollback(t *testing.T) {
 func TestCredentialRepositoryCRUDAndRollback(t *testing.T) {
 	ctx := context.Background()
 	db := openMigratedTestDB(t, ctx)
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	repo := NewCredentialRepository(db)
 	now := time.Date(2026, 6, 18, 12, 0, 0, 0, time.UTC)
@@ -248,7 +248,7 @@ func TestOpenAndSecureDatabaseFilesApplyRestrictivePermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open database: %v", err)
 	}
-	defer db.Close()
+	defer closeTestDB(t, db)
 
 	if err := Migrate(ctx, db); err != nil {
 		t.Fatalf("migrate database: %v", err)
@@ -282,7 +282,7 @@ func TestMigrateRejectsCorruptedDatabaseFile(t *testing.T) {
 
 	db, err := Open(ctx, dbPath)
 	if err == nil {
-		defer db.Close()
+		defer closeTestDB(t, db)
 		err = Migrate(ctx, db)
 	}
 
@@ -301,7 +301,9 @@ func openMigratedTestDB(t *testing.T, ctx context.Context) *sql.DB {
 	}
 
 	if err := Migrate(ctx, db); err != nil {
-		db.Close()
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("migrate test database: %v; close test database: %v", err, closeErr)
+		}
 		t.Fatalf("migrate test database: %v", err)
 	}
 
@@ -335,6 +337,14 @@ func assertTableExists(t *testing.T, db *sql.DB, tableName string) {
 
 	if count != 1 {
 		t.Fatalf("table %s count = %d, want 1", tableName, count)
+	}
+}
+
+func closeTestDB(t *testing.T, db *sql.DB) {
+	t.Helper()
+
+	if err := db.Close(); err != nil {
+		t.Fatalf("close test database: %v", err)
 	}
 }
 

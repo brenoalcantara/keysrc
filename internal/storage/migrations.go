@@ -110,14 +110,18 @@ func ensureSchemaMigrationsTable(ctx context.Context, tx *sql.Tx) error {
 	return nil
 }
 
-func appliedMigrationVersions(ctx context.Context, tx *sql.Tx) (map[int]bool, error) {
+func appliedMigrationVersions(ctx context.Context, tx *sql.Tx) (applied map[int]bool, err error) {
 	rows, err := tx.QueryContext(ctx, `SELECT version FROM schema_migrations`)
 	if err != nil {
 		return nil, fmt.Errorf("query applied migrations: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); err == nil && closeErr != nil {
+			err = fmt.Errorf("close applied migrations rows: %w", closeErr)
+		}
+	}()
 
-	applied := make(map[int]bool)
+	applied = make(map[int]bool)
 	for rows.Next() {
 		var version int
 		if err := rows.Scan(&version); err != nil {
