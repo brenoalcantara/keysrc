@@ -371,6 +371,24 @@ func TestValidateMasterPassword(t *testing.T) {
 	}
 }
 
+func BenchmarkDeriveMasterKeyDefaultParams(b *testing.B) {
+	params := DefaultKDFParams()
+	password := []byte("Very-Strong-Passphrase-2026!")
+	salt := []byte("1234567890abcdef")
+
+	b.ReportAllocs()
+	b.SetBytes(int64(params.MemoryKiB) * 1024)
+	b.ResetTimer()
+
+	for range b.N {
+		key, err := DeriveMasterKey(password, salt, params)
+		if err != nil {
+			b.Fatalf("derive master key: %v", err)
+		}
+		ZeroBytes(key)
+	}
+}
+
 func testKDFParams() KDFParams {
 	return KDFParams{
 		MemoryKiB:   MinimumKDFMemoryKiB,

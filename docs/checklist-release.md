@@ -21,6 +21,7 @@ govulncheck ./...
 - Executar lint pelo CI ou localmente com `golangci-lint run`.
 - Revisar falhas, warnings e vulnerabilidades antes de empacotar.
 - Confirmar que o workflow do GitHub Actions passou na branch ou tag da release.
+- Confirmar que PRs sensíveis seguiram `docs/checklist-seguranca-pr.md`.
 
 ## Seguranca
 

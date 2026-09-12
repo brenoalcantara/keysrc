@@ -116,6 +116,10 @@ O workflow em `.github/workflows/ci.yml` executa testes, `go test -race`, build,
 
 Os critérios de aceite da primeira release estão registrados em [docs/criterios-de-aceite.md](docs/criterios-de-aceite.md).
 
+As decisões técnicas confirmadas durante a implementação estão em [docs/decisoes-tecnicas.md](docs/decisoes-tecnicas.md).
+
+Pull requests que toquem autenticação, criptografia, storage ou UI de segredos devem seguir [docs/checklist-seguranca-pr.md](docs/checklist-seguranca-pr.md).
+
 Antes de publicar uma versão, siga [docs/checklist-release.md](docs/checklist-release.md).
 
 ## Dependencias locais
