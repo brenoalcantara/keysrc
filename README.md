@@ -114,6 +114,8 @@ Arquivos SQLite auxiliares, como WAL e SHM, também devem receber permissão res
 
 O workflow em `.github/workflows/ci.yml` executa testes, `go test -race`, build, lint com `golangci-lint` e `govulncheck`.
 
+Os critérios de aceite da primeira release estão registrados em [docs/criterios-de-aceite.md](docs/criterios-de-aceite.md).
+
 Antes de publicar uma versão, siga [docs/checklist-release.md](docs/checklist-release.md).
 
 ## Dependencias locais
