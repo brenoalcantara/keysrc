@@ -4,7 +4,7 @@ KeySrc é um cofre de senhas desktop, local e autônomo. A aplicação permite c
 
 ## Tecnologias
 
-- Go 1.26.4
+- Go 1.26.6
 - Fyne v2.7.3
 - SQLite com `modernc.org/sqlite`
 - Argon2id, HKDF e XChaCha20-Poly1305

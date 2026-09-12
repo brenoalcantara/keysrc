@@ -4,7 +4,7 @@ Este documento descreve como executar, testar, compilar e preparar pacotes do Ke
 
 ## Requisitos
 
-- Go 1.26.4.
+- Go 1.26.6.
 - Dependências do Fyne para a plataforma alvo.
 - SQLite via `modernc.org/sqlite`, sem dependência direta de uma biblioteca SQLite do sistema.
 - Uma cópia local de dependências em `vendor/`, quando a preferência for build reproduzível localmente.

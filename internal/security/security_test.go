@@ -48,19 +48,133 @@ func TestDeriveMasterKeyAndSubkeys(t *testing.T) {
 }
 
 func TestDeriveMasterKeyRejectsInvalidInputs(t *testing.T) {
+	validParams := testKDFParams()
+	validPassword := []byte("password")
+	validSalt := []byte("1234567890abcdef")
+
+	testCases := []struct {
+		name     string
+		password []byte
+		salt     []byte
+		params   KDFParams
+	}{
+		{
+			name:     "empty password",
+			password: nil,
+			salt:     validSalt,
+			params:   validParams,
+		},
+		{
+			name:     "short salt",
+			password: validPassword,
+			salt:     []byte("short"),
+			params:   validParams,
+		},
+		{
+			name:     "memory below minimum",
+			password: validPassword,
+			salt:     validSalt,
+			params: KDFParams{
+				MemoryKiB:   MinimumKDFMemoryKiB - 1,
+				Iterations:  validParams.Iterations,
+				Parallelism: validParams.Parallelism,
+				SaltLength:  validParams.SaltLength,
+				KeyLength:   validParams.KeyLength,
+			},
+		},
+		{
+			name:     "zero iterations",
+			password: validPassword,
+			salt:     validSalt,
+			params: KDFParams{
+				MemoryKiB:   validParams.MemoryKiB,
+				Iterations:  0,
+				Parallelism: validParams.Parallelism,
+				SaltLength:  validParams.SaltLength,
+				KeyLength:   validParams.KeyLength,
+			},
+		},
+		{
+			name:     "zero parallelism",
+			password: validPassword,
+			salt:     validSalt,
+			params: KDFParams{
+				MemoryKiB:   validParams.MemoryKiB,
+				Iterations:  validParams.Iterations,
+				Parallelism: 0,
+				SaltLength:  validParams.SaltLength,
+				KeyLength:   validParams.KeyLength,
+			},
+		},
+		{
+			name:     "wrong key length",
+			password: validPassword,
+			salt:     validSalt,
+			params: KDFParams{
+				MemoryKiB:   validParams.MemoryKiB,
+				Iterations:  validParams.Iterations,
+				Parallelism: validParams.Parallelism,
+				SaltLength:  validParams.SaltLength,
+				KeyLength:   KeySize - 1,
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if _, err := DeriveMasterKey(testCase.password, testCase.salt, testCase.params); !errors.Is(err, ErrInvalidInput) {
+				t.Fatalf("derive error = %v, want ErrInvalidInput", err)
+			}
+		})
+	}
+
+	creationParams := validParams
+	creationParams.SaltLength = MinimumKDFSaltLength - 1
+	if _, err := GenerateSalt(creationParams); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("short creation salt length error = %v, want ErrInvalidInput", err)
+	}
+}
+
+func TestVerifierRejectsWrongPassword(t *testing.T) {
 	params := testKDFParams()
+	salt := []byte("1234567890abcdef")
 
-	if _, err := DeriveMasterKey(nil, []byte("1234567890abcdef"), params); !errors.Is(err, ErrInvalidInput) {
-		t.Fatalf("empty password error = %v, want ErrInvalidInput", err)
+	correctMasterKey, err := DeriveMasterKey([]byte("correct password"), salt, params)
+	if err != nil {
+		t.Fatalf("derive correct master key: %v", err)
+	}
+	defer ZeroBytes(correctMasterKey)
+
+	correctSubkeys, err := DeriveSubkeys(correctMasterKey)
+	if err != nil {
+		t.Fatalf("derive correct subkeys: %v", err)
+	}
+	defer correctSubkeys.Zero()
+
+	verifier, err := CreateVerifier(correctSubkeys.AuthKey)
+	if err != nil {
+		t.Fatalf("create verifier: %v", err)
+	}
+	defer ZeroBytes(verifier)
+
+	wrongMasterKey, err := DeriveMasterKey([]byte("wrong password"), salt, params)
+	if err != nil {
+		t.Fatalf("derive wrong master key: %v", err)
+	}
+	defer ZeroBytes(wrongMasterKey)
+
+	wrongSubkeys, err := DeriveSubkeys(wrongMasterKey)
+	if err != nil {
+		t.Fatalf("derive wrong subkeys: %v", err)
+	}
+	defer wrongSubkeys.Zero()
+
+	if !VerifyVerifier(correctSubkeys.AuthKey, verifier) {
+		t.Fatal("correct password verifier was rejected")
 	}
 
-	if _, err := DeriveMasterKey([]byte("password"), []byte("short"), params); !errors.Is(err, ErrInvalidInput) {
-		t.Fatalf("short salt error = %v, want ErrInvalidInput", err)
-	}
-
-	params.Iterations = 0
-	if _, err := DeriveMasterKey([]byte("password"), []byte("1234567890abcdef"), params); !errors.Is(err, ErrInvalidInput) {
-		t.Fatalf("invalid params error = %v, want ErrInvalidInput", err)
+	if VerifyVerifier(wrongSubkeys.AuthKey, verifier) {
+		t.Fatal("wrong password verifier was accepted")
 	}
 }
 
